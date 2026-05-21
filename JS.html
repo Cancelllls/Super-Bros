@@ -12,7 +12,7 @@
         Surrogate.prototype = superclass.prototype;
         subclass.prototype = new Surrogate();
     }
-})()//simple resource loader
+})(); //simple resource loader
 (function() {
     var resourceCache = {};
     var loading = [];
@@ -40,7 +40,20 @@
                 resourceCache[url] = img;
 
                 if(isReady()) {
-                    readyCallbacks.forEach(function(func) { func(); });
+                    readyCallbacks.forEach(function(func) { 
+                      try { func(); } catch(e) { console.error("Error in onReady callback", e); }
+                    });
+                }
+            };
+            img.onerror = function() {
+                // If an image fails to load, use a dummy transparent 1x1 pixel
+                var dummy = new Image();
+                dummy.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                resourceCache[url] = dummy;
+                if(isReady()) {
+                    readyCallbacks.forEach(function(func) { 
+                      try { func(); } catch(e) { console.error("Error in onReady callback", e); }
+                    });
                 }
             };
             resourceCache[url] = false;
@@ -976,7 +989,7 @@
       this.sprite.size = [16,16];
       this.hitbox = [2,0,12,16];
       this.sprite.speed = 0;
-      this.frames = [0,1];
+      this.sprite.frames = [0,1];
       this.vel = [0,0];
       this.pos[1] += 16;
     }
@@ -1913,8 +1926,8 @@
         break;
       case "LEFT":
         this.endsection.render(ctx, this.pos[0]+16*(this.length-1), this.pos[1], vX, vY)
-        for (var i = 0; i < this.legth-1; i++) {
-          this.midsection.render(ctx, this.pos[0], this.pos[1]+i*16, vX, vY)
+        for (var i = 0; i < this.length-1; i++) {
+          this.midsection.render(ctx, this.pos[0]+i*16, this.pos[1], vX, vY)
         }
         break;
     }
@@ -2368,9 +2381,12 @@ var oneone = Mario.oneone = function() {
   level.putGoomba(172, 12);
   level.putKoopa(35, 11);
 
-  music.underground.pause();
-  // music.overworld.currentTime = 0;
-  music.overworld.play();
+  try {
+    music.underground.pause();
+    music.overworld.play();
+  } catch(e) {
+    console.warn("Music play failed", e);
+  }
 };
 var oneonetunnel = Mario.oneonetunnel = function() {
   level = new Mario.Level({
@@ -2433,9 +2449,13 @@ var oneonetunnel = Mario.oneonetunnel = function() {
 
   level.putPipe(15,13,13);
 
-  music.overworld.pause();
-  music.underground.currentTime = 0;
-  music.underground.play();
+  try {
+    music.overworld.pause();
+    music.underground.currentTime = 0;
+    music.underground.play();
+  } catch(e) {
+    console.warn("Music play failed", e);
+  }
 };
 var requestAnimFrame = (function(){
   return window.requestAnimationFrame       ||
@@ -2460,7 +2480,7 @@ var player = new Mario.Player([0,0]);
 //Cool!
 //TODO: Automatically scale the game to work and look good on widescreen.
 //TODO: fiddling with scaled sprites looks BETTER, but not perfect. Hmm.
-canvas.width = 762;
+canvas.width = 768;
 canvas.height = 720;
 ctx.scale(3,3);
 document.body.appendChild(canvas);
@@ -2511,7 +2531,11 @@ function init() {
   };
   Mario.oneone();
   lastTime = Date.now();
-  main();
+  try {
+    main();
+  } catch(e) {
+    console.error("Error in main loop", e);
+  }
 }
 
 var gameTime = 0;
