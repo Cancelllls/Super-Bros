@@ -7,9 +7,12 @@ html, body, ul, li {
 
 canvas {
   display: block;
-  width: 768px;
+  width: 768px; /* Visual size */
+  height: 720px;
   margin: 0 auto;
   background-color: blue;
+  image-rendering: pixelated; /* Keep pixels crisp */
+  image-rendering: crisp-edges;
 }
 
 p {

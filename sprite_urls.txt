@@ -1,0 +1,6 @@
+https://raw.githubusercontent.com/reruns/mario/gh-pages/sprites/enemy.png
+https://raw.githubusercontent.com/reruns/mario/gh-pages/sprites/enemyr.png
+https://raw.githubusercontent.com/reruns/mario/gh-pages/sprites/items.png
+https://raw.githubusercontent.com/reruns/mario/gh-pages/sprites/player.png
+https://raw.githubusercontent.com/reruns/mario/gh-pages/sprites/playerl.png
+https://raw.githubusercontent.com/reruns/mario/gh-pages/sprites/tiles.png

@@ -30,35 +30,47 @@
         }
     }
 
+    var totalResources = 0;
+    var loadedResources = 0;
+
     function _load(url) {
+        totalResources++;
+        logStatus("Queuing: " + url.split('/').pop());
         if(resourceCache[url]) {
+            loadedResources++;
             return resourceCache[url];
         }
         else {
             var img = new Image();
             img.onload = function() {
+                logStatus("Success: " + url.split('/').pop());
                 resourceCache[url] = img;
+                loadedResources++;
 
                 if(isReady()) {
                     readyCallbacks.forEach(function(func) { 
-                      try { func(); } catch(e) { console.error("Error in onReady callback", e); }
+                      try { func(); } catch(e) { logStatus("Error in onReady: " + e.message); }
                     });
                 }
             };
             img.onerror = function() {
+                logStatus("FAILED: " + url.split('/').pop());
                 // If an image fails to load, use a dummy transparent 1x1 pixel
                 var dummy = new Image();
                 dummy.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
                 resourceCache[url] = dummy;
+                loadedResources++;
                 if(isReady()) {
                     readyCallbacks.forEach(function(func) { 
-                      try { func(); } catch(e) { console.error("Error in onReady callback", e); }
+                      try { func(); } catch(e) { logStatus("Error in onReady (fallback): " + e.message); }
                     });
                 }
             };
             resourceCache[url] = false;
             // Use Base64 if available
-            img.src = (window.MARIO_ASSETS && window.MARIO_ASSETS[url]) ? window.MARIO_ASSETS[url] : url;
+            var src = (window.MARIO_ASSETS && window.MARIO_ASSETS[url]) ? window.MARIO_ASSETS[url] : url;
+            if (!window.MARIO_ASSETS) logStatus("Warning: MARIO_ASSETS not found!");
+            img.src = src;
         }
     }
 
@@ -78,7 +90,11 @@
     }
 
     function onReady(func) {
-        readyCallbacks.push(func);
+        if (isReady()) {
+            func();
+        } else {
+            readyCallbacks.push(func);
+        }
     }
 
     window.resources = {
@@ -98,34 +114,48 @@
         switch(code) {
         case 32:
             key = 'SPACE'; break;
-        case 37:
+        case 37: case 65: // Left or A
             key = 'LEFT'; break;
-        case 38:
+        case 38: case 87: // Up or W
             key = 'UP'; break;
-        case 39:
+        case 39: case 68: // Right or D
             key = 'RIGHT'; break;
-        case 40:
+        case 40: case 83: // Down or S
             key = 'DOWN'; break;
-        case 88:
+        case 88: case 75: // X or K
             key = 'JUMP'; break;
-        case 90:
+        case 90: case 74: // Z or J
             key = 'RUN'; break;
         default:
             key = String.fromCharCode(code);
         }
 
         pressedKeys[key] = status;
+        updateDebug(key, status);
+        
+        // Prevent scrolling with arrows/space
+        if([32, 37, 38, 39, 40].indexOf(code) > -1) {
+            event.preventDefault();
+        }
     }
 
-    document.addEventListener('keydown', function(e) {
+    function updateDebug(key, status) {
+        var el = document.getElementById('debug-' + key.toUpperCase());
+        if (el) {
+            el.innerHTML = status ? '<b style="color:#fff; background:red; padding:0 4px">ON</b>' : 'OFF';
+        }
+    }
+
+    window.addEventListener('keydown', function(e) {
         setKey(e, true);
     });
 
-    document.addEventListener('keyup', function(e) {
+    window.addEventListener('keyup', function(e) {
         setKey(e, false);
     });
 
     window.addEventListener('blur', function() {
+        for(var k in pressedKeys) updateDebug(k, false);
         pressedKeys = {};
     });
 
@@ -133,12 +163,14 @@
         isDown: function(key) {
             return pressedKeys[key.toUpperCase()];
         },
+        // Force key state for touch buttons
+        setKeyState: function(key, status) {
+            pressedKeys[key.toUpperCase()] = status;
+            updateDebug(key, status);
+        },
         reset: function() {
-          pressedKeys['RUN'] = false;
-          pressedKeys['LEFT'] = false;
-          pressedKeys['RIGHT'] = false;
-          pressedKeys['DOWN'] = false;
-          pressedKeys['JUMP'] = false;
+          for(var k in pressedKeys) updateDebug(k, false);
+          pressedKeys = {};
         }
     };
 })();
@@ -2476,14 +2508,8 @@ var updateables = [];
 var fireballs = [];
 var player = new Mario.Player([0,0]);
 
-//we might have to get the size and calculate the scaling
-//but this method should let us make it however big.
-//Cool!
-//TODO: Automatically scale the game to work and look good on widescreen.
-//TODO: fiddling with scaled sprites looks BETTER, but not perfect. Hmm.
-canvas.width = 768;
-canvas.height = 720;
-ctx.scale(3,3);
+canvas.width = 256;
+canvas.height = 240;
 document.body.appendChild(canvas);
 
 //viewport
@@ -2533,13 +2559,34 @@ function init() {
     powerup: new Audio(getSrc('https://raw.githubusercontent.com/reruns/mario/gh-pages/sounds/powerup.wav')),
     stomp: new Audio(getSrc('https://raw.githubusercontent.com/reruns/mario/gh-pages/sounds/stomp.wav'))
   };
+  logStatus("Initializing level...");
   Mario.oneone();
-  lastTime = Date.now();
-  try {
+  logStatus("Level 1-1 generated.");
+  
+  // Show start screen
+  ctx.fillStyle = "#7974FF";
+  ctx.fillRect(0, 0, vWidth, vHeight);
+  
+  // Draw a "button"
+  ctx.fillStyle = "white";
+  ctx.fillRect(vWidth/2 - 50, vHeight/2 - 15, 100, 30);
+  
+  ctx.fillStyle = "black";
+  ctx.font = "bold 10px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("CLICK TO START", vWidth/2, vHeight/2 + 4);
+  logStatus("Waiting for user click to start loop...");
+
+  var startGame = function() {
+    logStatus("Starting main loop...");
+    canvas.focus(); // Ensure canvas has keyboard focus
+    canvas.removeEventListener('click', startGame);
+    lastTime = Date.now();
     main();
-  } catch(e) {
-    console.error("Error in main loop", e);
-  }
+  };
+  canvas.tabIndex = 1; // Make canvas focusable
+  canvas.style.outline = "none";
+  canvas.addEventListener('click', startGame);
 }
 
 var gameTime = 0;
