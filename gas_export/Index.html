@@ -7902,14 +7902,11 @@ var LevelEditr = (function (pageStyles) {
 
 
         whitespace = "\n\r\t ".split('');
-        wordchar = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_
-        </script>
-    </body>
-</html>.split('');
+        wordchar = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$'.split('');
         digits = '0123456789'.split('');
 
         punct = '+ - * / % & ++ -- = += -= *= /= %= == === != !== > < >= <= >> << >>> >>>= >>= <<= && &= | || ! ~ , : ? ^ ^= |= :: =>';
-        punct += ' <%= <% %> <?= <? ?>'; // try to be a good boy and try not to break the markup language identifiers
+        punct += ' <%=' + ' <' + '% %' + '> <' + '?= <' + '? %' + '>'; // try to be a good boy and try not to break the markup language identifiers
         punct = punct.split(' ');
 
         // words which should always start on new line.
